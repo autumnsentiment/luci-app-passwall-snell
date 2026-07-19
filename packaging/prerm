@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ -z "$IPKG_INSTROOT" ]; then
+	/etc/init.d/passwall-snell stop >/dev/null 2>&1 || true
+	/etc/init.d/passwall-snell disable >/dev/null 2>&1 || true
+fi
+exit 0

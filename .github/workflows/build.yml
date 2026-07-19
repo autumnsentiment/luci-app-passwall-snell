@@ -1,0 +1,30 @@
+name: Build IPK
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Build IPK
+        run: python3 scripts/build-ipk.py --output dist
+      - name: Write checksums
+        run: sha256sum dist/*.ipk > dist/SHA256SUMS
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-app-passwall-snell
+          path: dist/

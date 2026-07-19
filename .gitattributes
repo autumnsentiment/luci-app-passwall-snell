@@ -1,0 +1,7 @@
+*.sh text eol=lf
+Makefile text eol=lf
+files/etc/config/* text eol=lf
+files/etc/init.d/* text eol=lf
+files/usr/share/passwall-snell/* text eol=lf
+files/usr/lib/lua/luci/**/*.lua text eol=lf
+packaging/* text eol=lf

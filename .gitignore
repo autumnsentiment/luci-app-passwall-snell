@@ -1,0 +1,4 @@
+dist/
+*.ipk
+__pycache__/
+*.pyc

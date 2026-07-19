@@ -1,0 +1,9 @@
+#!/bin/sh
+
+if [ -z "$IPKG_INSTROOT" ]; then
+	/usr/share/passwall-snell/migrate-config.sh >/dev/null 2>&1 || true
+	/etc/init.d/passwall-snell enable >/dev/null 2>&1 || true
+	rm -f /tmp/luci-indexcache
+	rm -rf /tmp/luci-modulecache
+fi
+exit 0

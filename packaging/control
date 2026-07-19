@@ -1,0 +1,11 @@
+Package: luci-app-passwall-snell
+Version: 1.0.0-1
+Architecture: all
+Maintainer: autumnsentiment
+Section: luci
+Priority: optional
+Depends: libc, luci-base, luci-app-passwall, curl, ca-bundle
+Description: LuCI PassWall Snell Bridge
+ Manages multiple Snell nodes, runs the selected node through Mihomo in RAM,
+ and exposes a local SOCKS5 endpoint for PassWall. The Mihomo core is
+ downloaded and SHA-256 verified at boot.

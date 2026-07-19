@@ -1,0 +1,13 @@
+config main 'main'
+	option enabled '0'
+	option active_node 'default'
+	option schema_version '2'
+
+config node 'default'
+	option remarks 'Default node'
+	option version '4'
+	option udp '1'
+	option reuse '1'
+	option tfo '1'
+	option obfs 'shadow-tls'
+	option shadow_tls_version '3'
