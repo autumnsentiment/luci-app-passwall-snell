@@ -13,6 +13,11 @@ local function first_section(config, section_type)
 	return name
 end
 
+local function restart_services()
+	sys.call("/etc/init.d/passwall-snell restart >/dev/null 2>&1")
+	sys.call("/etc/init.d/passwall restart >/dev/null 2>&1")
+end
+
 local m = Map(
 	"passwall_snell",
 	translate("PassWall Snell Bridge"),
@@ -132,9 +137,21 @@ end
 
 option = nodes:option(DummyValue, "obfs", translate("Obfuscation"))
 
+option = nodes:option(Button, "_switch", translate("Action"))
+option.inputtitle = translate("Activate")
+option.inputstyle = "apply"
+function option.cfgvalue(self, section_id)
+	return m:get("main", "active_node") ~= section_id
+end
+function option.write(self, section_id)
+	uci:set("passwall_snell", "main", "active_node", section_id)
+	uci:commit("passwall_snell")
+	restart_services()
+	http.redirect(dispatcher.build_url("admin", "services", "passwall_snell"))
+end
+
 m.on_after_apply = function()
-	sys.call("/etc/init.d/passwall-snell restart >/dev/null 2>&1")
-	sys.call("/etc/init.d/passwall restart >/dev/null 2>&1")
+	restart_services()
 end
 
 return m
