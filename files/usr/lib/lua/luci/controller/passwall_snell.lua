@@ -12,4 +12,10 @@ function index()
 		59
 	)
 	page.dependent = true
+
+	local node_page = entry(
+		{"admin", "services", "passwall_snell", "node"},
+		cbi("passwall_snell_node")
+	)
+	node_page.leaf = true
 end

@@ -33,7 +33,7 @@ LAN 客户端
 
 ## 兼容性
 
-`v1.0.0` 已验证环境：
+`v1.0.1` 已验证环境：
 
 - ImmortalWrt/OpenWrt 21.02 系列。
 - 传统 Lua LuCI。
@@ -63,7 +63,7 @@ Release IPK 会通过 `opkg` 检查前四项依赖。
 从 Releases 下载：
 
 ```text
-luci-app-passwall-snell_1.0.0-1_all.ipk
+luci-app-passwall-snell_1.0.1-1_all.ipk
 SHA256SUMS
 ```
 
@@ -71,14 +71,14 @@ SHA256SUMS
 
 ```sh
 sha256sum -c SHA256SUMS
-scp -O luci-app-passwall-snell_1.0.0-1_all.ipk root@192.168.1.1:/tmp/
+scp -O luci-app-passwall-snell_1.0.1-1_all.ipk root@192.168.1.1:/tmp/
 ```
 
 安装：
 
 ```sh
 ssh root@192.168.1.1
-opkg install /tmp/luci-app-passwall-snell_1.0.0-1_all.ipk
+opkg install /tmp/luci-app-passwall-snell_1.0.1-1_all.ipk
 ```
 
 安装脚本只启用开机启动，不会在配置为空时启动 Bridge。
@@ -109,7 +109,8 @@ http://路由器地址/cgi-bin/luci/admin/services/passwall_snell
 
 - `Enable`：启用 Bridge。
 - `Active node`：选择当前由 Mihomo 运行的节点。
-- `Snell nodes`：添加、删除或排序节点；新增节点保存后会出现在当前节点列表中。
+- `Snell nodes`：以表格显示节点摘要，可添加、删除或排序节点。
+- `Edit`：点击对应节点的编辑按钮后，才显示该节点的完整配置。
 - `Name`：节点显示名称。
 - `Server`：Snell 服务端 IP 或域名。
 - `Port`：Snell 服务端端口。
@@ -124,8 +125,8 @@ http://路由器地址/cgi-bin/luci/admin/services/passwall_snell
 - `ShadowTLS version`：通常使用 v3。
 - `IPv6 proxy`：仅在 Snell 服务端具备可用 IPv6 出口时开启。
 
-先添加并保存节点，再在 `Active node` 中选择它。保存后插件会重启 Bridge，并在
-一秒后重启 PassWall。
+先添加并保存节点，再在 `Active node` 中选择它并点击 `Save & Apply`。插件会在
+配置应用完成后依次重启 Bridge 和 PassWall，确保所选节点立即生效。
 
 ## 使用 UCI 配置
 
@@ -384,7 +385,7 @@ python3 scripts/build-ipk.py --output dist
 输出：
 
 ```text
-dist/luci-app-passwall-snell_1.0.0-1_all.ipk
+dist/luci-app-passwall-snell_1.0.1-1_all.ipk
 ```
 
 也可将仓库放入 OpenWrt 源码树：

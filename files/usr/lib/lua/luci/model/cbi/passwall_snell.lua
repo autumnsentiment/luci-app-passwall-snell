@@ -1,5 +1,7 @@
 local sys = require "luci.sys"
 local uci = require "luci.model.uci".cursor()
+local dispatcher = require "luci.dispatcher"
+local http = require "luci.http"
 
 local function first_section(config, section_type)
 	local name
@@ -16,6 +18,7 @@ local m = Map(
 	translate("PassWall Snell Bridge"),
 	translate("Runs Mihomo in RAM as a Snell client and exposes SOCKS5 on 127.0.0.1:17890 for PassWall. The core is downloaded and SHA-256 verified after each reboot.")
 )
+m.apply_on_parse = false
 
 local status = m:section(SimpleSection)
 local state = status:option(DummyValue, "_status", translate("Status"))
@@ -84,85 +87,54 @@ local nodes = m:section(
 	TypedSection,
 	"node",
 	translate("Snell nodes"),
-	translate("Add multiple nodes here, then choose one in Active node. Switching nodes restarts the bridge and PassWall.")
+	translate("Add nodes here, then choose one in Active node. Open a row to view or change its full configuration.")
 )
 nodes.anonymous = true
 nodes.addremove = true
 nodes.sortable = true
+nodes.template = "cbi/tblsection"
+nodes.extedit = dispatcher.build_url("admin", "services", "passwall_snell", "node", "%s")
 nodes.addbtntitle = translate("Add Snell node")
+function nodes.create(self, section_id)
+	local created = TypedSection.create(self, section_id)
+	if not m:get("main", "active_node") then
+		m:set("main", "active_node", created)
+	end
+	http.redirect(self.extedit:format(created))
+end
 
-option = nodes:option(Value, "remarks", translate("Name"))
-option.placeholder = translate("Snell node")
-option.rmempty = true
+function nodes.remove(self, section_id)
+	TypedSection.remove(self, section_id)
+	if m:get("main", "active_node") == section_id then
+		local first = m:get("@node[0]")
+		m:set("main", "active_node", first and first[".name"] or "")
+	end
+end
 
-option = nodes:option(Value, "server", translate("Server"))
-option.datatype = "host"
-option.rmempty = true
+option = nodes:option(DummyValue, "_active", translate("Status"))
+function option.cfgvalue(self, section_id)
+	if m:get("main", "active_node") == section_id then
+		return translate("Active")
+	end
+	return ""
+end
 
-option = nodes:option(Value, "port", translate("Port"))
-option.datatype = "port"
-option.rmempty = true
+option = nodes:option(DummyValue, "remarks", translate("Name"))
 
-option = nodes:option(Value, "psk", translate("PSK"))
-option.password = true
-option.rmempty = true
+option = nodes:option(DummyValue, "server", translate("Server"))
 
-option = nodes:option(ListValue, "version", translate("Protocol version"))
-option:value("1", "Snell v1")
-option:value("2", "Snell v2")
-option:value("3", "Snell v3")
-option:value("4", "Snell v4")
-option:value("5", "Snell v5")
-option.default = "4"
-option.rmempty = false
+option = nodes:option(DummyValue, "port", translate("Port"))
 
-option = nodes:option(Flag, "udp", translate("UDP"))
-option.default = 1
-option:depends("version", "3")
-option:depends("version", "4")
-option:depends("version", "5")
+option = nodes:option(DummyValue, "_protocol", translate("Protocol"))
+function option.cfgvalue(self, section_id)
+	return "Snell v" .. (m:get(section_id, "version") or "4")
+end
 
-option = nodes:option(Flag, "reuse", translate("Connection reuse"))
-option.default = 1
-option:depends("version", "2")
-option:depends("version", "4")
-option:depends("version", "5")
+option = nodes:option(DummyValue, "obfs", translate("Obfuscation"))
 
-option = nodes:option(Flag, "tfo", "TCP Fast Open")
-option.default = 1
-
-option = nodes:option(ListValue, "obfs", translate("Obfuscation"))
-option:value("none", translate("None"))
-option:value("http", "HTTP")
-option:value("tls", "TLS")
-option:value("shadow-tls", "ShadowTLS")
-option.default = "shadow-tls"
-option.rmempty = false
-
-option = nodes:option(Value, "obfs_host", translate("Obfuscation host"))
-option:depends("obfs", "http")
-option:depends("obfs", "tls")
-option.rmempty = true
-
-option = nodes:option(Value, "shadow_tls_password", "ShadowTLS password")
-option.password = true
-option:depends("obfs", "shadow-tls")
-option.rmempty = true
-
-option = nodes:option(Value, "shadow_tls_sni", "ShadowTLS SNI")
-option.datatype = "host"
-option:depends("obfs", "shadow-tls")
-option.rmempty = true
-
-option = nodes:option(ListValue, "shadow_tls_version", "ShadowTLS version")
-option:value("1", "ShadowTLS v1")
-option:value("2", "ShadowTLS v2")
-option:value("3", "ShadowTLS v3")
-option.default = "3"
-option:depends("obfs", "shadow-tls")
-
-m.on_after_commit = function()
-	sys.call("(/etc/init.d/passwall-snell restart; sleep 1; /etc/init.d/passwall restart) >/dev/null 2>&1 &")
+m.on_after_apply = function()
+	sys.call("/etc/init.d/passwall-snell restart >/dev/null 2>&1")
+	sys.call("/etc/init.d/passwall restart >/dev/null 2>&1")
 end
 
 return m

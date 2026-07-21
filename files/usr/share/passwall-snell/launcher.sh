@@ -70,7 +70,7 @@ check_architecture() {
 	case "$(uname -m)" in
 		aarch64|arm64) return 0 ;;
 		*)
-			log "Unsupported architecture: $(uname -m). Release v1.0.0 supports arm64 only"
+			log "Unsupported architecture: $(uname -m). This package supports arm64 only"
 			return 1
 			;;
 	esac
