@@ -33,7 +33,7 @@ LAN 客户端
 
 ## 兼容性
 
-`v1.0.2` 已验证环境：
+`v1.0.3` 已验证环境：
 
 - ImmortalWrt/OpenWrt 21.02 系列。
 - 传统 Lua LuCI。
@@ -63,7 +63,7 @@ Release IPK 会通过 `opkg` 检查前四项依赖。
 从 Releases 下载：
 
 ```text
-luci-app-passwall-snell_1.0.2-1_all.ipk
+luci-app-passwall-snell_1.0.3-1_all.ipk
 SHA256SUMS
 ```
 
@@ -71,14 +71,14 @@ SHA256SUMS
 
 ```sh
 sha256sum -c SHA256SUMS
-scp -O luci-app-passwall-snell_1.0.2-1_all.ipk root@192.168.1.1:/tmp/
+scp -O luci-app-passwall-snell_1.0.3-1_all.ipk root@192.168.1.1:/tmp/
 ```
 
 安装：
 
 ```sh
 ssh root@192.168.1.1
-opkg install /tmp/luci-app-passwall-snell_1.0.2-1_all.ipk
+opkg install /tmp/luci-app-passwall-snell_1.0.3-1_all.ipk
 ```
 
 安装脚本只启用开机启动，不会在配置为空时启动 Bridge。
@@ -108,9 +108,8 @@ http://路由器地址/cgi-bin/luci/admin/services/passwall_snell
 填写：
 
 - `Enable`：启用 Bridge。
-- `Active node`：选择当前由 Mihomo 运行的节点。
+- `Active node`：选择节点后点击同区域的 `Activate`，立即保存并重启 Bridge 与 PassWall。
 - `Snell nodes`：以表格显示节点摘要，可添加、删除或排序节点。
-- `Activate`：直接将对应行设为活动节点，并立即重启 Bridge 与 PassWall。
 - `Edit`：点击对应节点的编辑按钮后，才显示该节点的完整配置。
 - `Name`：节点显示名称。
 - `Server`：Snell 服务端 IP 或域名。
@@ -386,7 +385,7 @@ python3 scripts/build-ipk.py --output dist
 输出：
 
 ```text
-dist/luci-app-passwall-snell_1.0.2-1_all.ipk
+dist/luci-app-passwall-snell_1.0.3-1_all.ipk
 ```
 
 也可将仓库放入 OpenWrt 源码树：

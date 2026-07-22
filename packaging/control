@@ -1,5 +1,5 @@
 Package: luci-app-passwall-snell
-Version: 1.0.2-1
+Version: 1.0.3-1
 Architecture: all
 Maintainer: autumnsentiment
 Section: luci

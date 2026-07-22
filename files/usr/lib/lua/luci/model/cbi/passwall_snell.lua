@@ -62,6 +62,22 @@ if node_count == 0 then
 end
 active_node.rmempty = node_count == 0
 
+local activate_node = main:option(Button, "_activate_node", translate("Switch node"))
+activate_node.inputtitle = translate("Activate")
+activate_node.inputstyle = "apply"
+function activate_node.cfgvalue()
+	return node_count > 0
+end
+function activate_node.write()
+	local selected = http.formvalue("cbid.passwall_snell.main.active_node")
+	if selected and uci:get("passwall_snell", selected) == "node" then
+		uci:set("passwall_snell", "main", "active_node", selected)
+		uci:commit("passwall_snell")
+		restart_services()
+	end
+	http.redirect(dispatcher.build_url("admin", "services", "passwall_snell"))
+end
+
 option = main:option(
 	Flag,
 	"_ipv6_proxy",
@@ -136,19 +152,6 @@ function option.cfgvalue(self, section_id)
 end
 
 option = nodes:option(DummyValue, "obfs", translate("Obfuscation"))
-
-option = nodes:option(Button, "_switch", translate("Action"))
-option.inputtitle = translate("Activate")
-option.inputstyle = "apply"
-function option.cfgvalue(self, section_id)
-	return m:get("main", "active_node") ~= section_id
-end
-function option.write(self, section_id)
-	uci:set("passwall_snell", "main", "active_node", section_id)
-	uci:commit("passwall_snell")
-	restart_services()
-	http.redirect(dispatcher.build_url("admin", "services", "passwall_snell"))
-end
 
 m.on_after_apply = function()
 	restart_services()
