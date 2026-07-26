@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 PACKAGE = "luci-app-passwall-snell"
-VERSION = "1.0.3-1"
+VERSION = "1.0.4-1"
 ARCHITECTURE = "all"
 
 
@@ -58,6 +58,7 @@ def data_mode(path: Path) -> int:
     if normalized.endswith((
         "/usr/share/passwall-snell/launcher.sh",
         "/usr/share/passwall-snell/migrate-config.sh",
+        "/usr/share/passwall-snell/sync-passwall.sh",
     )):
         return 0o755
     if normalized.endswith("/etc/config/passwall_snell"):

@@ -16,6 +16,8 @@ SHA-256 校验后运行。
 - 连接复用与 TCP Fast Open。
 - LuCI 配置入口：`服务 -> PassWall Snell Bridge`。
 - procd 进程托管、异常自动拉起和开机启动。
+- 自动创建并维护插件专属 PassWall SOCKS 节点，无需手工修改 PassWall 配置文件。
+- 启用时保存原 TCP/UDP 节点，禁用或卸载时安全恢复；同名用户节点不会被覆盖。
 - 自动联动 PassWall IPv6 TProxy 与 AAAA 过滤设置。
 - Mihomo 固定版本、固定下载地址和 SHA-256 校验。
 - 配置文件在系统升级时保留。
@@ -25,7 +27,7 @@ SHA-256 校验后运行。
 ```text
 LAN 客户端
    -> PassWall REDIRECT/TPROXY
-   -> V2Ray SOCKS 出站节点 SnV4Xray
+   -> 插件自管的 V2Ray SOCKS 出站节点
    -> 127.0.0.1:17890
    -> Mihomo Snell v4 + ShadowTLS
    -> Snell 服务端
@@ -63,7 +65,7 @@ Release IPK 会通过 `opkg` 检查前四项依赖。
 从 Releases 下载：
 
 ```text
-luci-app-passwall-snell_1.0.3-1_all.ipk
+luci-app-passwall-snell_1.0.4-1_all.ipk
 SHA256SUMS
 ```
 
@@ -71,17 +73,18 @@ SHA256SUMS
 
 ```sh
 sha256sum -c SHA256SUMS
-scp -O luci-app-passwall-snell_1.0.3-1_all.ipk root@192.168.1.1:/tmp/
+scp -O luci-app-passwall-snell_1.0.4-1_all.ipk root@192.168.1.1:/tmp/
 ```
 
 安装：
 
 ```sh
 ssh root@192.168.1.1
-opkg install /tmp/luci-app-passwall-snell_1.0.3-1_all.ipk
+opkg install /tmp/luci-app-passwall-snell_1.0.4-1_all.ipk
 ```
 
-安装脚本只启用开机启动，不会在配置为空时启动 Bridge。
+安装脚本会启用开机启动并创建插件专属 PassWall SOCKS 节点，但不会在配置为空时
+启动 Bridge 或接管 PassWall 当前节点。后续只需在 LuCI 填写 Snell 参数并启用插件。
 
 如 LuCI 菜单没有立即出现：
 
@@ -125,8 +128,9 @@ http://路由器地址/cgi-bin/luci/admin/services/passwall_snell
 - `ShadowTLS version`：通常使用 v3。
 - `IPv6 proxy`：仅在 Snell 服务端具备可用 IPv6 出口时开启。
 
-先添加并保存节点，再在 `Active node` 中选择它并点击 `Save & Apply`。插件会在
-配置应用完成后依次重启 Bridge 和 PassWall，确保所选节点立即生效。
+先添加并保存节点，再在 `Active node` 中选择它并点击 `Save & Apply`。插件会自动
+创建或更新专属 PassWall SOCKS 节点、保存原 TCP/UDP 选择并完成切换，然后依次重启
+Bridge 和 PassWall。无需再通过 SSH 或 UCI 手工接线。
 
 ## 使用 UCI 配置
 
@@ -180,37 +184,27 @@ logread | grep passwall-snell
 
 ## 接入 PassWall
 
-Bridge 启动后，在 PassWall 中创建一个 SOCKS 节点：
+安装后会自动创建 `passwall_snell_bridge` 节点；若该名称已被用户占用，插件会选择
+带数字后缀的新名称，绝不覆盖现有节点。只有同时满足以下条件时才会自动切换：
+
+- Bridge 已启用。
+- 活跃 Snell 节点已填写服务器、端口和 PSK。
+- 使用 ShadowTLS 时，密码和 SNI 也已填写。
+
+切换时，插件将 PassWall 的 `tcp_node` 指向自管 SOCKS 节点，并将 `udp_node` 设为
+`tcp`。这表示 UDP 流量使用当前 TCP 节点；Mihomo 接收到 SOCKS UDP 后，由 Snell v4
+将 UDP 封装在 TCP 链路中。禁用或卸载插件时会恢复接管前的 TCP/UDP 选择。
+
+如需手工触发一次幂等同步，可执行：
 
 ```sh
-uci -q delete passwall.SnV4Xray 2>/dev/null || true
-uci set passwall.SnV4Xray='nodes'
-uci set passwall.SnV4Xray.remarks='Snell-v4-ShadowTLS-Mihomo-UoT-Xray'
-uci set passwall.SnV4Xray.type='V2ray'
-uci set passwall.SnV4Xray.protocol='socks'
-uci set passwall.SnV4Xray.address='127.0.0.1'
-uci set passwall.SnV4Xray.port='17890'
-uci set passwall.SnV4Xray.tls='0'
-uci set passwall.SnV4Xray.transport='tcp'
-uci set passwall.SnV4Xray.mux='0'
-
-uci set passwall.@global[0].tcp_node='SnV4Xray'
-uci set passwall.@global[0].udp_node='tcp'
-
-uci set passwall.@global[0].filter_proxy_ipv6='1'
-uci set passwall.@global_forwarding[0].ipv6_tproxy='0'
-uci set passwall.@global_forwarding[0].tcp_proxy_way='redirect'
-
-uci commit passwall
-/etc/init.d/passwall restart
+/usr/share/passwall-snell/sync-passwall.sh sync
 ```
-
-`udp_node='tcp'` 表示 PassWall 的 UDP 流量使用当前 TCP 节点。Mihomo 接收到
-SOCKS UDP 后，由 Snell v4 将 UDP 封装在 TCP 链路中。
 
 确认节点已选中：
 
 ```sh
+uci get passwall_snell.main.passwall_node
 uci get passwall.@global[0].tcp_node
 uci get passwall.@global[0].udp_node
 cat /tmp/etc/passwall/id/TCP
@@ -364,8 +358,9 @@ opkg install /tmp/luci-app-passwall-snell_NEW_VERSION_all.ipk
 opkg remove luci-app-passwall-snell
 ```
 
-卸载脚本会停止并禁用服务，并清理 LuCI 缓存。根据 `opkg` 的 conffile
-策略，修改过的 `/etc/config/passwall_snell` 可能会被保留。
+卸载脚本会恢复接管前的 PassWall TCP/UDP 节点、删除插件自管节点、重启 PassWall、
+停止并禁用 Bridge，并清理 LuCI 缓存。根据 `opkg` 的 conffile 策略，修改过的
+`/etc/config/passwall_snell` 可能会被保留。
 
 如需彻底删除：
 
@@ -385,7 +380,7 @@ python3 scripts/build-ipk.py --output dist
 输出：
 
 ```text
-dist/luci-app-passwall-snell_1.0.3-1_all.ipk
+dist/luci-app-passwall-snell_1.0.4-1_all.ipk
 ```
 
 也可将仓库放入 OpenWrt 源码树：
@@ -432,14 +427,23 @@ date
 ### Bridge 正常但 PassWall 无法联网
 
 ```sh
+uci get passwall_snell.main.passwall_node
 uci get passwall.@global[0].tcp_node
 uci get passwall.@global[0].udp_node
 netstat -lntup | grep -E '1041|15353|17890'
 tail -n 100 /tmp/log/passwall.log
 ```
 
-确保 `SnV4Xray` 节点地址为 `127.0.0.1`、端口为 `17890`，并且 PassWall
-启动顺序晚于 Bridge。插件启动优先级为 `98`，PassWall 通常为 `99`。
+确认 `passwall_snell.main.passwall_node` 指向的自管节点地址为 `127.0.0.1`、端口为
+`17890`，且 `tcp_node` 选择了该节点。可执行一次同步修复节点字段和选择：
+
+```sh
+/usr/share/passwall-snell/sync-passwall.sh sync
+/etc/init.d/passwall-snell restart
+/etc/init.d/passwall restart
+```
+
+插件启动优先级为 `98`，PassWall 通常为 `99`。
 
 ### LuCI 菜单不显示
 

@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-passwall-snell
-PKG_VERSION:=1.0.3
+PKG_VERSION:=1.0.4
 PKG_RELEASE:=1
 PKG_MAINTAINER:=autumnsentiment
 PKGARCH:=all
@@ -39,17 +39,24 @@ define Package/luci-app-passwall-snell/install
 	$(INSTALL_DIR) $(1)/usr/share/passwall-snell
 	$(INSTALL_BIN) ./files/usr/share/passwall-snell/launcher.sh $(1)/usr/share/passwall-snell/launcher.sh
 	$(INSTALL_BIN) ./files/usr/share/passwall-snell/migrate-config.sh $(1)/usr/share/passwall-snell/migrate-config.sh
+	$(INSTALL_BIN) ./files/usr/share/passwall-snell/sync-passwall.sh $(1)/usr/share/passwall-snell/sync-passwall.sh
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/controller
 	$(INSTALL_DATA) ./files/usr/lib/lua/luci/controller/passwall_snell.lua $(1)/usr/lib/lua/luci/controller/passwall_snell.lua
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/model/cbi
 	$(INSTALL_DATA) ./files/usr/lib/lua/luci/model/cbi/passwall_snell.lua $(1)/usr/lib/lua/luci/model/cbi/passwall_snell.lua
+	$(INSTALL_DATA) ./files/usr/lib/lua/luci/model/cbi/passwall_snell_node.lua $(1)/usr/lib/lua/luci/model/cbi/passwall_snell_node.lua
 endef
 
 define Package/luci-app-passwall-snell/postinst
 #!/bin/sh
 if [ -z "$${IPKG_INSTROOT}" ]; then
 	/usr/share/passwall-snell/migrate-config.sh >/dev/null 2>&1 || true
+	/usr/share/passwall-snell/sync-passwall.sh sync >/dev/null 2>&1 || true
 	/etc/init.d/passwall-snell enable >/dev/null 2>&1 || true
+	if [ "$$(uci -q get passwall_snell.main.enabled)" = "1" ]; then
+		/etc/init.d/passwall-snell restart >/dev/null 2>&1 || true
+		/etc/init.d/passwall restart >/dev/null 2>&1 || true
+	fi
 	rm -f /tmp/luci-indexcache
 	rm -rf /tmp/luci-modulecache
 fi
@@ -59,6 +66,8 @@ endef
 define Package/luci-app-passwall-snell/prerm
 #!/bin/sh
 if [ -z "$${IPKG_INSTROOT}" ]; then
+	/usr/share/passwall-snell/sync-passwall.sh cleanup >/dev/null 2>&1 || true
+	/etc/init.d/passwall restart >/dev/null 2>&1 || true
 	/etc/init.d/passwall-snell stop >/dev/null 2>&1 || true
 	/etc/init.d/passwall-snell disable >/dev/null 2>&1 || true
 fi

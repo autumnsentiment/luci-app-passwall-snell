@@ -9,6 +9,12 @@ if not node_id or uci:get("passwall_snell", node_id) ~= "node" then
 	http.redirect(list_url)
 end
 
+local function restart_services()
+	sys.call("/usr/share/passwall-snell/sync-passwall.sh sync >/dev/null 2>&1")
+	sys.call("/etc/init.d/passwall-snell restart >/dev/null 2>&1")
+	sys.call("/etc/init.d/passwall restart >/dev/null 2>&1")
+end
+
 local m = Map(
 	"passwall_snell",
 	translate("Snell node configuration")
@@ -91,8 +97,7 @@ option.default = "3"
 option:depends("obfs", "shadow-tls")
 
 m.on_after_apply = function()
-	sys.call("/etc/init.d/passwall-snell restart >/dev/null 2>&1")
-	sys.call("/etc/init.d/passwall restart >/dev/null 2>&1")
+	restart_services()
 end
 
 return m

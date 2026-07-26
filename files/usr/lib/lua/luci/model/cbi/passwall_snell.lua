@@ -14,6 +14,7 @@ local function first_section(config, section_type)
 end
 
 local function restart_services()
+	sys.call("/usr/share/passwall-snell/sync-passwall.sh sync >/dev/null 2>&1")
 	sys.call("/etc/init.d/passwall-snell restart >/dev/null 2>&1")
 	sys.call("/etc/init.d/passwall restart >/dev/null 2>&1")
 end

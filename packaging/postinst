@@ -2,7 +2,12 @@
 
 if [ -z "$IPKG_INSTROOT" ]; then
 	/usr/share/passwall-snell/migrate-config.sh >/dev/null 2>&1 || true
+	/usr/share/passwall-snell/sync-passwall.sh sync >/dev/null 2>&1 || true
 	/etc/init.d/passwall-snell enable >/dev/null 2>&1 || true
+	if [ "$(uci -q get passwall_snell.main.enabled)" = "1" ]; then
+		/etc/init.d/passwall-snell restart >/dev/null 2>&1 || true
+		/etc/init.d/passwall restart >/dev/null 2>&1 || true
+	fi
 	rm -f /tmp/luci-indexcache
 	rm -rf /tmp/luci-modulecache
 fi
